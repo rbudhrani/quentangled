@@ -1,0 +1,37 @@
+[package]
+name = "quentangled"
+version = "0.0.1"
+edition = "2024"
+authors = ["Ravi Budhrani"]
+license = "Apache-2.0"
+description = "A state vector based quantum circuit simulator."
+repository = "https://github.com/rbudhrani/quentangled"
+homepage = "https://github.com/rbudhrani/quentangled"
+readme = "README.md"
+
+[dependencies]
+num-complex = "0.4.6"
+rayon = "1.8"
+serde = { version = "1.0", features = ["derive"] }
+toml = "0.8.19"
+
+[dev-dependencies]
+criterion = "0.8"
+dhat = "0.3"
+
+[profile.release]
+opt-level = 3       # Maximize execution speed (this is the default, but good to be explicit)
+lto = true          # Enable Link Time Optimization (Fat LTO)
+codegen-units = 1   # Compile everything in one chunk for better optimization
+strip = true        # Automatically strip debug symbols and symbols tables
+panic = "abort"     # Terminate immediately on panic instead of unwinding the stack
+
+[[bench]]
+name = "speed_bench"
+harness = false
+[[bench]]
+name = "chunk_bench"
+harness = false
+[[bench]]
+name = "threads_bench"
+harness = false
