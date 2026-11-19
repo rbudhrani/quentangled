@@ -49,6 +49,47 @@ impl StateVector {
         }
     }
 
+    /// Builds the tensor product of individually specified qubit states.
+    ///
+    /// For qubit `i`, the pair contains its amplitudes for `|0>` and `|1>`,
+    /// respectively. Pairs are ordered by qubit index, with qubit 0 least
+    /// significant in the resulting basis-state indices.
+    ///
+    /// # Arguments
+    ///
+    /// * `num_qubits` - The number of qubits represented by the state vector.
+    /// * `states` - One `(amplitude_0, amplitude_1)` pair per qubit. The caller
+    ///   must ensure that the slice length equals `num_qubits` and that each
+    ///   pair is normalized.
+    ///
+    /// # Returns
+    ///
+    /// A state vector containing the tensor product of the supplied single-qubit
+    /// states. This input format represents product states, not entangled states;
+    /// the resulting state vector still contains `2^num_qubits` amplitudes.
+    pub(crate) fn with_initial_state(num_qubits: usize, states: &[(Complex64, Complex64)]) -> Self {
+        let len = 1 << num_qubits;
+        let mut amplitudes = vec![Complex64::new(0.0, 0.0); len];
+        amplitudes[0] = Complex64::new(1.0, 0.0);
+
+        for (qubit, (amplitude_0, amplitude_1)) in states.iter().enumerate() {
+            let mask = 1 << qubit;
+            for index in 0..len {
+                if index & mask == 0 {
+                    let amplitude = amplitudes[index];
+                    amplitudes[index] = amplitude * *amplitude_0;
+                    amplitudes[index | mask] = amplitude * *amplitude_1;
+                }
+            }
+        }
+
+        Self {
+            num_qubits,
+            amplitudes,
+            buffer: vec![Complex64::new(0.0, 0.0); len],
+        }
+    }
+
     /// Applies a 2x2 unitary matrix representing a single-qubit gate.
     ///
     /// # Arguments
@@ -372,6 +413,28 @@ mod tests {
                 Complex64::new(0.0, 0.0)
             ));
         }
+    }
+
+    #[test]
+    fn test_product_state_initialization_uses_qubit_index_order() {
+        let plus = Complex64::new(std::f64::consts::FRAC_1_SQRT_2, 0.0);
+        let state = StateVector::with_initial_state(
+            2,
+            &[
+                (Complex64::new(0.0, 0.0), Complex64::new(1.0, 0.0)),
+                (plus, plus),
+            ],
+        );
+
+        assert_amplitudes_approx_eq(
+            &state.amplitudes,
+            &[
+                Complex64::new(0.0, 0.0),
+                plus,
+                Complex64::new(0.0, 0.0),
+                plus,
+            ],
+        );
     }
 
     #[test]

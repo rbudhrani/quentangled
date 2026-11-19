@@ -279,7 +279,7 @@ mod tests {
         let circuit = Circuit::new(2);
         let gate_matrix_registry: GateMatrixRegistry = Default::default();
         let state =
-            simulator_with_gates(gate_matrix_registry, EngineConfig::default()).execute(&circuit)
+            simulator_with_gates(gate_matrix_registry, EngineConfig::default()).execute(&circuit);
 
         assert!(approx_eq(state.amplitudes[0], Complex64::new(1.0, 0.0)));
         assert!(approx_eq(state.amplitudes[1], Complex64::new(0.0, 0.0)));
@@ -323,7 +323,7 @@ mod tests {
         circuit.x(0).unwrap();
 
         let state =
-            simulator_with_gates(gate_matrix_registry, EngineConfig::default()).execute(&circuit)
+            simulator_with_gates(gate_matrix_registry, EngineConfig::default()).execute(&circuit);
 
         assert!(approx_eq(state.amplitudes[0], Complex64::new(0.0, 0.0)));
         assert!(approx_eq(state.amplitudes[1], Complex64::new(1.0, 0.0)));
@@ -336,7 +336,7 @@ mod tests {
         circuit.h(0).unwrap();
 
         let state =
-            simulator_with_gates(gate_matrix_registry, EngineConfig::default()).execute(&circuit)
+            simulator_with_gates(gate_matrix_registry, EngineConfig::default()).execute(&circuit);
 
         assert!(approx_eq(
             state.amplitudes[0],
@@ -355,7 +355,7 @@ mod tests {
         circuit.y(0).unwrap();
 
         let state =
-            simulator_with_gates(gate_matrix_registry, EngineConfig::default()).execute(&circuit)
+            simulator_with_gates(gate_matrix_registry, EngineConfig::default()).execute(&circuit);
 
         assert!(approx_eq(state.amplitudes[0], Complex64::new(0.0, 0.0)));
         assert!(approx_eq(state.amplitudes[1], Complex64::new(0.0, 1.0)));
@@ -369,7 +369,7 @@ mod tests {
         circuit.x(0).unwrap().z(0).unwrap();
 
         let state =
-            simulator_with_gates(gate_matrix_registry, EngineConfig::default()).execute(&circuit)
+            simulator_with_gates(gate_matrix_registry, EngineConfig::default()).execute(&circuit);
 
         assert!(approx_eq(state.amplitudes[0], Complex64::new(0.0, 0.0)));
         assert!(approx_eq(state.amplitudes[1], Complex64::new(-1.0, 0.0)));
@@ -387,7 +387,7 @@ mod tests {
         circuit.phase(0, PI / 2.0).unwrap();
 
         let state =
-            simulator_with_gates(gate_matrix_registry, EngineConfig::default()).execute(&circuit)
+            simulator_with_gates(gate_matrix_registry, EngineConfig::default()).execute(&circuit);
 
         // Due to floating-point math, we use a small tolerance for assertions
         let tolerance = 1e-10;
@@ -420,7 +420,7 @@ mod tests {
         circuit.unitary(0, custom_x_matrix, None, 0.0).unwrap();
 
         let state =
-            simulator_with_gates(gate_matrix_registry, EngineConfig::default()).execute(&circuit)
+            simulator_with_gates(gate_matrix_registry, EngineConfig::default()).execute(&circuit);
 
         assert!(approx_eq(state.amplitudes[0], Complex64::new(0.0, 0.0)));
         assert!(approx_eq(state.amplitudes[1], Complex64::new(1.0, 0.0)));
@@ -662,7 +662,7 @@ mod tests {
         circuit.x(0).unwrap().cnot(0, 1).unwrap();
 
         let state =
-            simulator_with_gates(gate_matrix_registry, EngineConfig::default()).execute(&circuit)
+            simulator_with_gates(gate_matrix_registry, EngineConfig::default()).execute(&circuit);
 
         assert!(approx_eq(state.amplitudes[3], Complex64::new(1.0, 0.0)));
     }
@@ -735,7 +735,7 @@ mod tests {
         circuit.x(0).unwrap().x(1).unwrap().cz(0, 1).unwrap();
 
         let state =
-            simulator_with_gates(gate_matrix_registry, EngineConfig::default()).execute(&circuit)
+            simulator_with_gates(gate_matrix_registry, EngineConfig::default()).execute(&circuit);
 
         assert!(approx_eq(state.amplitudes[3], Complex64::new(-1.0, 0.0)));
     }
@@ -775,7 +775,7 @@ mod tests {
         circuit.x(0).unwrap().swap(0, 1).unwrap();
 
         let state =
-            simulator_with_gates(gate_matrix_registry, EngineConfig::default()).execute(&circuit)
+            simulator_with_gates(gate_matrix_registry, EngineConfig::default()).execute(&circuit);
 
         assert!(approx_eq(state.amplitudes[2], Complex64::new(1.0, 0.0)));
     }
@@ -822,7 +822,7 @@ mod tests {
         circuit.cnot(0, 1).unwrap();
 
         let state =
-            simulator_with_gates(gate_matrix_registry, EngineConfig::default()).execute(&circuit)
+            simulator_with_gates(gate_matrix_registry, EngineConfig::default()).execute(&circuit);
 
         // A Bell State creates a 50/50 superposition of |00> and |11>.
         // The states |01> and |10> should have exactly 0 probability.
@@ -844,11 +844,8 @@ mod tests {
 
         circuit.x(0).unwrap();
 
-        let state = simulator_with_gates(
-            ERR_GATE_MATRIX_REGISTRY.clone(),
-            EngineConfig::default(),
-        )
-        .execute(&circuit);
+        let state = simulator_with_gates(ERR_GATE_MATRIX_REGISTRY.clone(), EngineConfig::default())
+            .execute(&circuit);
 
         assert!(approx_eq(state.amplitudes[0], Complex64::new(0.0, -1.0)));
         assert!(approx_eq(state.amplitudes[1], Complex64::new(0.0, 0.0)));
@@ -860,11 +857,8 @@ mod tests {
 
         circuit.y(0).unwrap();
 
-        let state = simulator_with_gates(
-            ERR_GATE_MATRIX_REGISTRY.clone(),
-            EngineConfig::default(),
-        )
-        .execute(&circuit);
+        let state = simulator_with_gates(ERR_GATE_MATRIX_REGISTRY.clone(), EngineConfig::default())
+            .execute(&circuit);
 
         assert!(approx_eq(state.amplitudes[0], Complex64::new(0.0, -1.0)));
         assert!(approx_eq(state.amplitudes[1], Complex64::new(0.0, 0.0)));
@@ -876,11 +870,8 @@ mod tests {
 
         circuit.z(0).unwrap();
 
-        let state = simulator_with_gates(
-            ERR_GATE_MATRIX_REGISTRY.clone(),
-            EngineConfig::default(),
-        )
-        .execute(&circuit);
+        let state = simulator_with_gates(ERR_GATE_MATRIX_REGISTRY.clone(), EngineConfig::default())
+            .execute(&circuit);
 
         assert!(approx_eq(state.amplitudes[0], Complex64::new(0.0, -1.0)));
         assert!(approx_eq(state.amplitudes[1], Complex64::new(0.0, 0.0)));
@@ -892,11 +883,8 @@ mod tests {
 
         circuit.h(0).unwrap();
 
-        let state = simulator_with_gates(
-            ERR_GATE_MATRIX_REGISTRY.clone(),
-            EngineConfig::default(),
-        )
-        .execute(&circuit);
+        let state = simulator_with_gates(ERR_GATE_MATRIX_REGISTRY.clone(), EngineConfig::default())
+            .execute(&circuit);
 
         assert!(approx_eq(state.amplitudes[0], Complex64::new(0.0, -1.0)));
         assert!(approx_eq(state.amplitudes[1], Complex64::new(0.0, 0.0)));
@@ -908,11 +896,8 @@ mod tests {
 
         circuit.phase(0, PI).unwrap();
 
-        let state = simulator_with_gates(
-            ERR_GATE_MATRIX_REGISTRY.clone(),
-            EngineConfig::default(),
-        )
-        .execute(&circuit);
+        let state = simulator_with_gates(ERR_GATE_MATRIX_REGISTRY.clone(), EngineConfig::default())
+            .execute(&circuit);
 
         assert!(approx_eq(state.amplitudes[0], Complex64::new(1.0, 0.0)));
         assert!(approx_eq(state.amplitudes[1], Complex64::new(0.0, 0.0)));
