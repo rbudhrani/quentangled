@@ -69,17 +69,15 @@ impl StateVector {
     /// the resulting state vector still contains `2^num_qubits` amplitudes.
     pub(crate) fn with_initial_state(num_qubits: usize, states: &[(Complex64, Complex64)]) -> Self {
         let len = 1 << num_qubits;
-        let mut amplitudes = vec![Complex64::new(0.0, 0.0); len];
-        amplitudes[0] = Complex64::new(1.0, 0.0);
+        let mut amplitudes = Vec::with_capacity(len);
+        amplitudes.push(Complex64::new(1.0, 0.0));
 
-        for (qubit, (amplitude_0, amplitude_1)) in states.iter().enumerate() {
-            let mask = 1 << qubit;
-            for index in 0..len {
-                if index & mask == 0 {
-                    let amplitude = amplitudes[index];
-                    amplitudes[index] = amplitude * *amplitude_0;
-                    amplitudes[index | mask] = amplitude * *amplitude_1;
-                }
+        for (amplitude_0, amplitude_1) in states {
+            let previous_len = amplitudes.len();
+            amplitudes.extend_from_within(..);
+            for index in 0..previous_len {
+                amplitudes[index] *= *amplitude_0;
+                amplitudes[index + previous_len] *= *amplitude_1;
             }
         }
 
