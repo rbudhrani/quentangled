@@ -138,14 +138,24 @@ To start from independent single-qubit states, pass one pair of complex
 amplitudes `(amplitude_0, amplitude_1)` per qubit:
 
 ```rust
-use quentangled::Complex64;
+use quentangled::{Circuit, Complex64, Simulator};
 
-let plus = Complex64::new(1.0 / 2.0_f64.sqrt(), 0.0);
-let input = [
-  (Complex64::new(0.0, 0.0), Complex64::new(1.0, 0.0)), // qubit 0: |1>
-  (plus, plus),                                        // qubit 1: |+>
-];
-let state = simulator.execute(&circuit, Some(&input))?;
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let simulator = Simulator::default();
+
+    let plus = Complex64::new(1.0 / 2.0_f64.sqrt(), 0.0);
+    let zero = Complex64::new(0.0, 0.0);
+    let one = Complex64::new(1.0, 0.0);
+    let input = [(plus, plus), (one, zero)];
+
+    let mut circuit = Circuit::new(2);
+    circuit.cnot(0, 1)?;
+    let state = simulator.execute(&circuit, Some(&input))?;
+
+    println!("Amplitudes: {:?}", state.amplitudes());
+    println!("Probabilities: {:?}", state.probabilities());
+    Ok(())
+}
 ```
 
 Each pair must be normalised. This input format describes product states, not
