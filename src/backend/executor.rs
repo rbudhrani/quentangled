@@ -7,7 +7,7 @@
 use super::state_vector::StateVector;
 use crate::backend::gate_matrices::GateMatrixRegistry;
 use crate::core::circuit::Circuit;
-use crate::core::config::{ConfigError, EngineConfig, SimulatorConfig};
+use crate::core::config::{ConfigError, SimulatorConfig};
 use crate::core::gate::Gate;
 use crate::core::operation::Operation;
 use num_complex::Complex64;
@@ -125,7 +125,79 @@ impl Simulator {
     /// # Returns
     /// The final state amplitudes and derived probability accessors.
     pub fn execute(&self, circuit: &Circuit) -> SimulationResult {
-        execute(circuit, &self.gates, self.config.engine)
+        let gates = &self.gates;
+        let engine = self.config.engine;
+        assert!(engine.chunk_size > 0, "chunk_size must be greater than 0");
+        let mut state = StateVector::new(circuit.num_qubits());
+
+        for op in circuit.operations() {
+            match op {
+                Operation::ApplyGate { gate, qubits, .. } => {
+                    match gate {
+                        // --- Two-Qubit Gates ---
+                        Gate::CNOT => {
+                            state.apply_controlled_gate(qubits[0], qubits[1], gates.cnot, engine);
+                            if let Some(error) = gates.cnot_error_matrix {
+                                state.apply_two_qubit_gate(qubits[0], qubits[1], error, engine);
+                            }
+                        }
+                        Gate::CZ => {
+                            state.apply_controlled_gate(qubits[0], qubits[1], gates.cz, engine);
+                            if let Some(error) = gates.cz_error_matrix {
+                                state.apply_two_qubit_gate(qubits[0], qubits[1], error, engine);
+                            }
+                        }
+                        Gate::SWAP => {
+                            state.apply_swap(qubits[0], qubits[1], gates.swap, engine);
+                            if let Some(error) = gates.swap_error_matrix {
+                                state.apply_two_qubit_gate(qubits[0], qubits[1], error, engine);
+                            }
+                        }
+
+                        // --- Single-Qubit Gates ---
+                        Gate::PauliX => {
+                            state.apply_single_qubit_gate(qubits[0], gates.x, engine);
+                            if let Some(error) = gates.x_error_matrix {
+                                state.apply_single_qubit_gate(qubits[0], error, engine);
+                            }
+                        }
+                        Gate::PauliY => {
+                            state.apply_single_qubit_gate(qubits[0], gates.y, engine);
+                            if let Some(error) = gates.y_error_matrix {
+                                state.apply_single_qubit_gate(qubits[0], error, engine);
+                            }
+                        }
+                        Gate::PauliZ => {
+                            state.apply_single_qubit_gate(qubits[0], gates.z, engine);
+                            if let Some(error) = gates.z_error_matrix {
+                                state.apply_single_qubit_gate(qubits[0], error, engine);
+                            }
+                        }
+                        Gate::Hadamard => {
+                            state.apply_single_qubit_gate(qubits[0], gates.h, engine);
+                            if let Some(error) = gates.h_error_matrix {
+                                state.apply_single_qubit_gate(qubits[0], error, engine);
+                            }
+                        }
+                        Gate::Phase(theta) => {
+                            let matrix = gates.phase(*theta);
+                            state.apply_single_qubit_gate(qubits[0], matrix, engine);
+                            if let Some(error) = gates.phase_error_matrix {
+                                state.apply_single_qubit_gate(qubits[0], error, engine);
+                            }
+                        }
+                        Gate::Unitary2x2(matrix) => {
+                            state.apply_single_qubit_gate(qubits[0], *matrix, engine);
+                            if let Some(error) = gates.unitary_error_matrix {
+                                state.apply_single_qubit_gate(qubits[0], error, engine);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        SimulationResult::from_state_vector(state)
     }
 
     /// Estimates total circuit duration by summing configured gate durations.
@@ -148,106 +220,11 @@ impl Default for Simulator {
     }
 }
 
-/// Applies a validated circuit using explicit gate matrices and engine settings.
-///
-/// This function iterates chronologically through every operation in the circuit,
-/// matches each abstract [`Gate`] to its backend operation, and applies it to the target qubit(s).
-///
-/// # Arguments
-///
-/// * `circuit` - The circuit containing the sequence of validated operations to run.
-/// * `gates` - The gate matrices and phase settings used during execution.
-/// * `engine` - The parallel threshold and chunk size used for gate execution.
-///
-/// # Returns
-///
-/// A [`SimulationResult`] with the final amplitudes and probabilities.
-///
-/// # Panics
-/// Panics if `engine.chunk_size` is zero. Public simulator construction rejects this setting.
-pub(crate) fn execute(
-    circuit: &Circuit,
-    gates: &GateMatrixRegistry,
-    engine: EngineConfig,
-) -> SimulationResult {
-    assert!(engine.chunk_size > 0, "chunk_size must be greater than 0");
-    let mut state = StateVector::new(circuit.num_qubits());
-
-    for op in circuit.operations() {
-        match op {
-            Operation::ApplyGate { gate, qubits, .. } => {
-                match gate {
-                    // --- Two-Qubit Gates ---
-                    Gate::CNOT => {
-                        state.apply_controlled_gate(qubits[0], qubits[1], gates.cnot, engine);
-                        if let Some(error) = gates.cnot_error_matrix {
-                            state.apply_two_qubit_gate(qubits[0], qubits[1], error, engine);
-                        }
-                    }
-                    Gate::CZ => {
-                        state.apply_controlled_gate(qubits[0], qubits[1], gates.cz, engine);
-                        if let Some(error) = gates.cz_error_matrix {
-                            state.apply_two_qubit_gate(qubits[0], qubits[1], error, engine);
-                        }
-                    }
-                    Gate::SWAP => {
-                        state.apply_swap(qubits[0], qubits[1], gates.swap, engine);
-                        if let Some(error) = gates.swap_error_matrix {
-                            state.apply_two_qubit_gate(qubits[0], qubits[1], error, engine);
-                        }
-                    }
-
-                    // --- Single-Qubit Gates ---
-                    Gate::PauliX => {
-                        state.apply_single_qubit_gate(qubits[0], gates.x, engine);
-                        if let Some(error) = gates.x_error_matrix {
-                            state.apply_single_qubit_gate(qubits[0], error, engine);
-                        }
-                    }
-                    Gate::PauliY => {
-                        state.apply_single_qubit_gate(qubits[0], gates.y, engine);
-                        if let Some(error) = gates.y_error_matrix {
-                            state.apply_single_qubit_gate(qubits[0], error, engine);
-                        }
-                    }
-                    Gate::PauliZ => {
-                        state.apply_single_qubit_gate(qubits[0], gates.z, engine);
-                        if let Some(error) = gates.z_error_matrix {
-                            state.apply_single_qubit_gate(qubits[0], error, engine);
-                        }
-                    }
-                    Gate::Hadamard => {
-                        state.apply_single_qubit_gate(qubits[0], gates.h, engine);
-                        if let Some(error) = gates.h_error_matrix {
-                            state.apply_single_qubit_gate(qubits[0], error, engine);
-                        }
-                    }
-                    Gate::Phase(theta) => {
-                        let matrix = gates.phase(*theta);
-                        state.apply_single_qubit_gate(qubits[0], matrix, engine);
-                        if let Some(error) = gates.phase_error_matrix {
-                            state.apply_single_qubit_gate(qubits[0], error, engine);
-                        }
-                    }
-                    Gate::Unitary2x2(matrix) => {
-                        state.apply_single_qubit_gate(qubits[0], *matrix, engine);
-                        if let Some(error) = gates.unitary_error_matrix {
-                            state.apply_single_qubit_gate(qubits[0], error, engine);
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    SimulationResult::from_state_vector(state)
-}
-
 #[cfg(test)]
 mod tests {
     //! Unit tests for the executor module.
 
-    use crate::core::config::{GatePropsConfig, SimulatorConfig};
+    use crate::core::config::{EngineConfig, GatePropsConfig, SimulatorConfig};
 
     use super::*;
     use num_complex::Complex64;
@@ -275,6 +252,16 @@ mod tests {
         (a.re - b.re).abs() < 1e-10 && (a.im - b.im).abs() < 1e-10
     }
 
+    fn simulator_with_gates(gates: GateMatrixRegistry, engine: EngineConfig) -> Simulator {
+        Simulator {
+            config: SimulatorConfig {
+                engine,
+                ..SimulatorConfig::default()
+            },
+            gates,
+        }
+    }
+
     struct SingleQubitErrorCase {
         name: &'static str,
         expected: [Complex64; 2],
@@ -291,7 +278,8 @@ mod tests {
     fn test_execute_empty_circuit_state_unchanged() {
         let circuit = Circuit::new(2);
         let gate_matrix_registry: GateMatrixRegistry = Default::default();
-        let state = execute(&circuit, &gate_matrix_registry, EngineConfig::default());
+        let state =
+            simulator_with_gates(gate_matrix_registry, EngineConfig::default()).execute(&circuit)
 
         assert!(approx_eq(state.amplitudes[0], Complex64::new(1.0, 0.0)));
         assert!(approx_eq(state.amplitudes[1], Complex64::new(0.0, 0.0)));
@@ -309,7 +297,7 @@ mod tests {
             chunk_size: 0,
         };
 
-        execute(&circuit, &gates, engine);
+        simulator_with_gates(gates, engine).execute(&circuit);
     }
 
     #[test]
@@ -334,7 +322,8 @@ mod tests {
         let gate_matrix_registry: GateMatrixRegistry = Default::default();
         circuit.x(0).unwrap();
 
-        let state = execute(&circuit, &gate_matrix_registry, EngineConfig::default());
+        let state =
+            simulator_with_gates(gate_matrix_registry, EngineConfig::default()).execute(&circuit)
 
         assert!(approx_eq(state.amplitudes[0], Complex64::new(0.0, 0.0)));
         assert!(approx_eq(state.amplitudes[1], Complex64::new(1.0, 0.0)));
@@ -346,7 +335,8 @@ mod tests {
         let gate_matrix_registry: GateMatrixRegistry = Default::default();
         circuit.h(0).unwrap();
 
-        let state = execute(&circuit, &gate_matrix_registry, EngineConfig::default());
+        let state =
+            simulator_with_gates(gate_matrix_registry, EngineConfig::default()).execute(&circuit)
 
         assert!(approx_eq(
             state.amplitudes[0],
@@ -364,7 +354,8 @@ mod tests {
         let gate_matrix_registry: GateMatrixRegistry = Default::default();
         circuit.y(0).unwrap();
 
-        let state = execute(&circuit, &gate_matrix_registry, EngineConfig::default());
+        let state =
+            simulator_with_gates(gate_matrix_registry, EngineConfig::default()).execute(&circuit)
 
         assert!(approx_eq(state.amplitudes[0], Complex64::new(0.0, 0.0)));
         assert!(approx_eq(state.amplitudes[1], Complex64::new(0.0, 1.0)));
@@ -377,7 +368,8 @@ mod tests {
         // start with state |1> so the Z gate can apply the phase
         circuit.x(0).unwrap().z(0).unwrap();
 
-        let state = execute(&circuit, &gate_matrix_registry, EngineConfig::default());
+        let state =
+            simulator_with_gates(gate_matrix_registry, EngineConfig::default()).execute(&circuit)
 
         assert!(approx_eq(state.amplitudes[0], Complex64::new(0.0, 0.0)));
         assert!(approx_eq(state.amplitudes[1], Complex64::new(-1.0, 0.0)));
@@ -394,7 +386,8 @@ mod tests {
         // This multiplies the |1> amplitude by e^(i * PI/2) = i
         circuit.phase(0, PI / 2.0).unwrap();
 
-        let state = execute(&circuit, &gate_matrix_registry, EngineConfig::default());
+        let state =
+            simulator_with_gates(gate_matrix_registry, EngineConfig::default()).execute(&circuit)
 
         // Due to floating-point math, we use a small tolerance for assertions
         let tolerance = 1e-10;
@@ -426,7 +419,8 @@ mod tests {
 
         circuit.unitary(0, custom_x_matrix, None, 0.0).unwrap();
 
-        let state = execute(&circuit, &gate_matrix_registry, EngineConfig::default());
+        let state =
+            simulator_with_gates(gate_matrix_registry, EngineConfig::default()).execute(&circuit)
 
         assert!(approx_eq(state.amplitudes[0], Complex64::new(0.0, 0.0)));
         assert!(approx_eq(state.amplitudes[1], Complex64::new(1.0, 0.0)));
@@ -451,7 +445,7 @@ mod tests {
 
         circuit.unitary(0, x, Some(z), 0.0).unwrap();
 
-        let state = execute(&circuit, &gates, EngineConfig::default());
+        let state = simulator_with_gates(gates, EngineConfig::default()).execute(&circuit);
 
         assert!(approx_eq(state.amplitudes[0], Complex64::new(0.0, 0.0)));
         assert!(approx_eq(state.amplitudes[1], Complex64::new(-1.0, 0.0)));
@@ -667,7 +661,8 @@ mod tests {
         // Put the first qubit in the state |1> so the CNOT can flip the second.
         circuit.x(0).unwrap().cnot(0, 1).unwrap();
 
-        let state = execute(&circuit, &gate_matrix_registry, EngineConfig::default());
+        let state =
+            simulator_with_gates(gate_matrix_registry, EngineConfig::default()).execute(&circuit)
 
         assert!(approx_eq(state.amplitudes[3], Complex64::new(1.0, 0.0)));
     }
@@ -688,7 +683,7 @@ mod tests {
         let mut circuit = Circuit::new(2);
         circuit.x(0).unwrap().cnot(0, 1).unwrap();
 
-        let state = execute(&circuit, &gates, EngineConfig::default());
+        let state = simulator_with_gates(gates, EngineConfig::default()).execute(&circuit);
 
         assert!(approx_eq(state.amplitudes[0], Complex64::new(0.0, 0.0)));
         assert!(approx_eq(
@@ -718,7 +713,7 @@ mod tests {
         let mut circuit = Circuit::new(2);
         circuit.h(1).unwrap().cnot(0, 1).unwrap();
 
-        let state = execute(&circuit, &gates, EngineConfig::default());
+        let state = simulator_with_gates(gates, EngineConfig::default()).execute(&circuit);
 
         assert!(approx_eq(
             state.amplitudes[0],
@@ -739,7 +734,8 @@ mod tests {
 
         circuit.x(0).unwrap().x(1).unwrap().cz(0, 1).unwrap();
 
-        let state = execute(&circuit, &gate_matrix_registry, EngineConfig::default());
+        let state =
+            simulator_with_gates(gate_matrix_registry, EngineConfig::default()).execute(&circuit)
 
         assert!(approx_eq(state.amplitudes[3], Complex64::new(-1.0, 0.0)));
     }
@@ -760,7 +756,7 @@ mod tests {
         let mut circuit = Circuit::new(2);
         circuit.x(0).unwrap().x(1).unwrap().cz(0, 1).unwrap();
 
-        let state = execute(&circuit, &gates, EngineConfig::default());
+        let state = simulator_with_gates(gates, EngineConfig::default()).execute(&circuit);
 
         assert!(approx_eq(state.amplitudes[0], Complex64::new(0.0, 0.0)));
         assert!(approx_eq(state.amplitudes[1], Complex64::new(0.0, 0.0)));
@@ -778,7 +774,8 @@ mod tests {
 
         circuit.x(0).unwrap().swap(0, 1).unwrap();
 
-        let state = execute(&circuit, &gate_matrix_registry, EngineConfig::default());
+        let state =
+            simulator_with_gates(gate_matrix_registry, EngineConfig::default()).execute(&circuit)
 
         assert!(approx_eq(state.amplitudes[2], Complex64::new(1.0, 0.0)));
     }
@@ -799,7 +796,7 @@ mod tests {
         let mut circuit = Circuit::new(2);
         circuit.x(0).unwrap().swap(0, 1).unwrap();
 
-        let state = execute(&circuit, &gates, EngineConfig::default());
+        let state = simulator_with_gates(gates, EngineConfig::default()).execute(&circuit);
 
         assert!(approx_eq(
             state.amplitudes[1],
@@ -824,7 +821,8 @@ mod tests {
         // 2. CNOT: Control = Qubit 0, Target = Qubit 1
         circuit.cnot(0, 1).unwrap();
 
-        let state = execute(&circuit, &gate_matrix_registry, EngineConfig::default());
+        let state =
+            simulator_with_gates(gate_matrix_registry, EngineConfig::default()).execute(&circuit)
 
         // A Bell State creates a 50/50 superposition of |00> and |11>.
         // The states |01> and |10> should have exactly 0 probability.
@@ -846,7 +844,11 @@ mod tests {
 
         circuit.x(0).unwrap();
 
-        let state = execute(&circuit, &ERR_GATE_MATRIX_REGISTRY, EngineConfig::default());
+        let state = simulator_with_gates(
+            ERR_GATE_MATRIX_REGISTRY.clone(),
+            EngineConfig::default(),
+        )
+        .execute(&circuit);
 
         assert!(approx_eq(state.amplitudes[0], Complex64::new(0.0, -1.0)));
         assert!(approx_eq(state.amplitudes[1], Complex64::new(0.0, 0.0)));
@@ -858,7 +860,11 @@ mod tests {
 
         circuit.y(0).unwrap();
 
-        let state = execute(&circuit, &ERR_GATE_MATRIX_REGISTRY, EngineConfig::default());
+        let state = simulator_with_gates(
+            ERR_GATE_MATRIX_REGISTRY.clone(),
+            EngineConfig::default(),
+        )
+        .execute(&circuit);
 
         assert!(approx_eq(state.amplitudes[0], Complex64::new(0.0, -1.0)));
         assert!(approx_eq(state.amplitudes[1], Complex64::new(0.0, 0.0)));
@@ -870,7 +876,11 @@ mod tests {
 
         circuit.z(0).unwrap();
 
-        let state = execute(&circuit, &ERR_GATE_MATRIX_REGISTRY, EngineConfig::default());
+        let state = simulator_with_gates(
+            ERR_GATE_MATRIX_REGISTRY.clone(),
+            EngineConfig::default(),
+        )
+        .execute(&circuit);
 
         assert!(approx_eq(state.amplitudes[0], Complex64::new(0.0, -1.0)));
         assert!(approx_eq(state.amplitudes[1], Complex64::new(0.0, 0.0)));
@@ -882,7 +892,11 @@ mod tests {
 
         circuit.h(0).unwrap();
 
-        let state = execute(&circuit, &ERR_GATE_MATRIX_REGISTRY, EngineConfig::default());
+        let state = simulator_with_gates(
+            ERR_GATE_MATRIX_REGISTRY.clone(),
+            EngineConfig::default(),
+        )
+        .execute(&circuit);
 
         assert!(approx_eq(state.amplitudes[0], Complex64::new(0.0, -1.0)));
         assert!(approx_eq(state.amplitudes[1], Complex64::new(0.0, 0.0)));
@@ -894,7 +908,11 @@ mod tests {
 
         circuit.phase(0, PI).unwrap();
 
-        let state = execute(&circuit, &ERR_GATE_MATRIX_REGISTRY, EngineConfig::default());
+        let state = simulator_with_gates(
+            ERR_GATE_MATRIX_REGISTRY.clone(),
+            EngineConfig::default(),
+        )
+        .execute(&circuit);
 
         assert!(approx_eq(state.amplitudes[0], Complex64::new(1.0, 0.0)));
         assert!(approx_eq(state.amplitudes[1], Complex64::new(0.0, 0.0)));
