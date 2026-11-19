@@ -35,12 +35,20 @@ fn threads_bench(c: &mut Criterion) {
 
         // 1. Force Sequential Mode
         group.bench_with_input(BenchmarkId::new("sequential", qubits), &qubits, |b, _| {
-            b.iter(|| sequential_simulator.execute(black_box(&circuit)))
+            b.iter(|| {
+                sequential_simulator
+                    .execute(black_box(&circuit), None)
+                    .unwrap()
+            })
         });
 
         // 2. Force Parallel Mode
         group.bench_with_input(BenchmarkId::new("parallel", qubits), &qubits, |b, _| {
-            b.iter(|| parallel_simulator.execute(black_box(&circuit)))
+            b.iter(|| {
+                parallel_simulator
+                    .execute(black_box(&circuit), None)
+                    .unwrap()
+            })
         });
     }
 

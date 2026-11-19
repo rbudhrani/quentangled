@@ -135,9 +135,9 @@ impl SimulatorConfig {
                 return Err(ConfigError::UnknownGate(name.clone()));
             }
 
-            let normalized_name = name.to_ascii_lowercase();
-            if !configured_names.insert(normalized_name.clone()) {
-                return Err(ConfigError::DuplicateGate(normalized_name));
+            let normalised_name = name.to_ascii_lowercase();
+            if !configured_names.insert(normalised_name.clone()) {
+                return Err(ConfigError::DuplicateGate(normalised_name));
             }
 
             if properties

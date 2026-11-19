@@ -35,3 +35,6 @@ harness = false
 [[bench]]
 name = "threads_bench"
 harness = false
+[[bench]]
+name = "state_initialisation"
+harness = false

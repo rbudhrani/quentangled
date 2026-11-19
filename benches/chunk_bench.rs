@@ -33,7 +33,7 @@ fn bench_chunk(c: &mut Criterion) {
         .unwrap();
 
         group.bench_with_input(BenchmarkId::new("chunk", size), &size, |b, _| {
-            b.iter(|| simulator.execute(black_box(&circuit)))
+            b.iter(|| simulator.execute(black_box(&circuit), None).unwrap())
         });
     }
 
