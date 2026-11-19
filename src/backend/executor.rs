@@ -360,6 +360,30 @@ mod tests {
     }
 
     #[test]
+    fn test_execute_preserves_complex_initial_amplitudes() {
+        let mut circuit = Circuit::new(1);
+        circuit.z(0).unwrap();
+        let amplitude = FRAC_1_SQRT_2;
+        let initial_state = [(
+            Complex64::new(amplitude, 0.0),
+            Complex64::new(0.0, amplitude),
+        )];
+
+        let state = Simulator::default()
+            .execute(&circuit, Some(&initial_state))
+            .unwrap();
+
+        assert!(approx_eq(
+            state.amplitudes[0],
+            Complex64::new(amplitude, 0.0)
+        ));
+        assert!(approx_eq(
+            state.amplitudes[1],
+            Complex64::new(0.0, -amplitude)
+        ));
+    }
+
+    #[test]
     fn test_execute_rejects_invalid_initial_state() {
         let circuit = Circuit::new(2);
         let simulator = Simulator::default();
