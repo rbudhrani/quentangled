@@ -131,6 +131,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 ```
 
 Execution returns a `SimulationResult` with amplitude and probability accessors; the state-vector backend remains an implementation detail.
+Missing settings use the defaults defined by `quentangled`.
+Gate names in TOML are case-insensitive; unknown names are rejected during configuration loading.
 
 To start from independent single-qubit states, pass one pair of complex
 amplitudes `(amplitude_0, amplitude_1)` per qubit:
@@ -148,9 +150,6 @@ let state = simulator.execute(&circuit, Some(&input))?;
 
 Each pair must be normalised. This input format describes product states, not
 entangled states. Use `None` to start in the default `|0...0>` state.
-
-Missing settings use the defaults defined by `quentangled`.
-Gate names in TOML are case-insensitive; unknown names are rejected during configuration loading.
 
 ### Engine parameters
 The 2 parameters that can be set here are:
