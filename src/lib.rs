@@ -7,7 +7,7 @@
 mod backend;
 mod core;
 
-pub use backend::executor::{SimulationResult, Simulator};
+pub use backend::executor::{SimulationError, SimulationResult, Simulator};
 pub use core::circuit::{Circuit, CircuitError};
 pub use core::config::{ConfigError, EngineConfig, GatePropsConfig, SimulatorConfig};
 pub use num_complex::Complex64;

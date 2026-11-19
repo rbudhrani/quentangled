@@ -60,7 +60,7 @@ impl StateVector {
     /// * `num_qubits` - The number of qubits represented by the state vector.
     /// * `states` - One `(amplitude_0, amplitude_1)` pair per qubit. The caller
     ///   must ensure that the slice length equals `num_qubits` and that each
-    ///   pair is normalized.
+    ///   pair is normalised.
     ///
     /// # Returns
     ///

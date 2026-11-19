@@ -16,7 +16,9 @@ fn main() {
     }
 
     println!("Executing state vector (Expect ~33 MB allocation)...");
-    let _state = simulator.execute(&circuit);
+    let _state = simulator
+        .execute(&circuit, None)
+        .expect("default initial state is valid");
 
     println!("Done!");
 }

@@ -123,7 +123,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
   let mut circuit = Circuit::new(2);
   circuit.h(0)?.cnot(0, 1)?;
-  let state = simulator.execute(&circuit);
+  let state = simulator.execute(&circuit, None)?;
 
   println!("{:?}", state.probabilities());
   Ok(())
@@ -131,6 +131,23 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 ```
 
 Execution returns a `SimulationResult` with amplitude and probability accessors; the state-vector backend remains an implementation detail.
+
+To start from independent single-qubit states, pass one pair of complex
+amplitudes `(amplitude_0, amplitude_1)` per qubit:
+
+```rust
+use quentangled::Complex64;
+
+let plus = Complex64::new(1.0 / 2.0_f64.sqrt(), 0.0);
+let input = [
+  (Complex64::new(0.0, 0.0), Complex64::new(1.0, 0.0)), // qubit 0: |1>
+  (plus, plus),                                        // qubit 1: |+>
+];
+let state = simulator.execute(&circuit, Some(&input))?;
+```
+
+Each pair must be normalised. This input format describes product states, not
+entangled states. Use `None` to start in the default `|0...0>` state.
 
 Missing settings use the defaults defined by `quentangled`.
 Gate names in TOML are case-insensitive; unknown names are rejected during configuration loading.

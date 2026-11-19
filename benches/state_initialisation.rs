@@ -9,7 +9,8 @@ mod core {
     }
 }
 
-// Include the backend source so this benchmark can access its crate-private initializer.
+// Include the backend source so this benchmark can access its crate-private initialiser.
+#[allow(dead_code)]
 #[path = "../src/backend/state_vector.rs"]
 mod state_vector;
 

@@ -22,7 +22,7 @@ fn bench_speed(c: &mut Criterion) {
         circ_10.cnot(i, i + 1).unwrap();
     }
     group.bench_function("ghz_10_qubits_baseline", |b| {
-        b.iter(|| simulator.execute(black_box(&circ_10)))
+        b.iter(|| simulator.execute(black_box(&circ_10), None).unwrap())
     });
 
     // ---------------------------------------------------------
@@ -35,7 +35,7 @@ fn bench_speed(c: &mut Criterion) {
         circ_20.cnot(i, i + 1).unwrap();
     }
     group.bench_function("ghz_20_qubits_bandwidth", |b| {
-        b.iter(|| simulator.execute(black_box(&circ_20)))
+        b.iter(|| simulator.execute(black_box(&circ_20), None).unwrap())
     });
 
     // ---------------------------------------------------------
@@ -46,7 +46,7 @@ fn bench_speed(c: &mut Criterion) {
     circ_adj.h(0).unwrap();
     circ_adj.cnot(0, 1).unwrap();
     group.bench_function("cnot_20_qubits_adjacent", |b| {
-        b.iter(|| simulator.execute(black_box(&circ_adj)))
+        b.iter(|| simulator.execute(black_box(&circ_adj), None).unwrap())
     });
 
     // ---------------------------------------------------------
@@ -57,7 +57,7 @@ fn bench_speed(c: &mut Criterion) {
     circ_dist.h(0).unwrap();
     circ_dist.cnot(0, 19).unwrap();
     group.bench_function("cnot_20_qubits_distant", |b| {
-        b.iter(|| simulator.execute(black_box(&circ_dist)))
+        b.iter(|| simulator.execute(black_box(&circ_dist), None).unwrap())
     });
 
     // Signal to Criterion that the group configuration is complete

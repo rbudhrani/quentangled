@@ -21,7 +21,7 @@ pub(crate) enum Gate {
     /// The Hadamard gate. Places the target qubit into equal superposition.
     Hadamard,
 
-    /// A parameterized phase-shift gate.
+    /// A parameterised phase-shift gate.
     ///
     /// # Contains
     /// * `f64` - The rotation angle (theta) in radians.
@@ -70,7 +70,7 @@ impl FromStr for Gate {
     /// Parses a gate name without regard to letter case.
     ///
     /// Supported names are `x`, `y`, `z`, `h`, `phase`, `cnot`, `cz`, `swap`,
-    /// and `unitary`. Parameterized gates use placeholder values; configuration
+    /// and `unitary`. Parameterised gates use placeholder values; configuration
     /// loading uses this parser only to validate gate names.
     ///
     /// # Arguments
