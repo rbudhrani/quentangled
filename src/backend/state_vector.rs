@@ -405,9 +405,9 @@ mod tests {
         ));
 
         // All other states should be 0
-        for i in 1..8 {
+        for amplitude in &state.amplitudes[1..] {
             assert!(approx_eq_complex(
-                state.amplitudes[i],
+                *amplitude,
                 Complex64::new(0.0, 0.0)
             ));
         }
